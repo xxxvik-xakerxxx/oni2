@@ -1,69 +1,13 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
-  name: $(Build.SourceVersion)
-
-# Master build triggers
-  trigger: 
-  - master
-
-# PR Triggers
-  pr:
-  autoCancel: true
-  branches:
-    include: 
-    - master
-  paths:
-    exclude: 
-    - README.md
-
-  jobs:
-    - job: Kickoff
-      displayName: "Kickoff"
-      pool:
-        vmImage: 'ubuntu-18.04'
-
-  steps:
-   - script: ./scripts/set-short-commit-variable.sh
-     name: shortCommitVariableStep
-
-   - job: Hygiene_Checks
-     displayName: 'Hygiene Checks'
-     timeoutInMinutes: 0
-     pool:
-       vmImage: 'macOS 10.14'
-
-  variables:
-    STAGING_DIRECTORY: $(Build.StagingDirectory)
-    ESY__CACHE_INSTALL_PATH: /Users/runner/.esy/3__________________________________________________________________/i
-    ESY__CACHE_BUILD_PATH: /Users/runner/.esy/3__________________________________________________________________/b
-    ESY__CACHE_SOURCE_TARBALL_PATH: /Users/runner/.esy/source/i
-    MACOSX_DEPLOYMENT_TARGET: 10.12
-    CACHE_ARTIFACT_NAME: cache-$(Agent.OS)-install
-    # ESY__NPM_ROOT: /usr/local/lib/node_modules/esy
-
-    steps:
-     - template: .ci/use-node.yml
-     - script: brew cleanup
-       continueOnError: true
-     - script: brew update-reset
-     - script: brew install ragel
-     - template: .ci/restore-build-cache.yml
-     - template: .ci/swap-xcode.yml
-     - template: .ci/js-build-steps.yml
-     - template: .ci/esy-check-hygiene.yml
-     - template: .ci/publish-build-cache.yml
-
-
-  - job: MacOS
-    displayName: "MacOS 10.14"
-    timeoutInMinutes: 0
-    pool:
-      vmImage: 'macOS 10.14'
-
-    variables:
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+jobs:
+  macos:
+    runs-on: macOS-10.15
+    env:
       STAGING_DIRECTORY: $(Build.StagingDirectory)
       ESY__CACHE_INSTALL_PATH: /Users/runner/.esy/3__________________________________________________________________/i
       ESY__CACHE_BUILD_PATH: /Users/runner/.esy/3__________________________________________________________________/b
@@ -72,71 +16,40 @@
       CACHE_ARTIFACT_NAME: cache-$(Agent.OS)-install
     # ESY__NPM_ROOT: /usr/local/lib/node_modules/esy
 
-      steps:
-        - template: .ci/use-node.yml
-        - script: brew cleanup
-          continueOnError: true
-        - script: brew update-reset
-        - script: brew install ragel
-        - template: .ci/restore-build-cache.yml
-        - template: .ci/swap-xcode.yml
-        - template: .ci/js-build-steps.yml
-        - template: .ci/use-esy.yml
-        - template: .ci/esy-build-steps.yml
-          parameters:
-          platform: darwin
-        - template: .ci/run-integration-tests.yml
-          parameters:
-          platform: darwin
-        - script: _release/Onivim2.App/Contents/MacOS/Oni2 -f --no-log-colors --checkhealth
-          displayName: 'Release: --checkhealth'
-        - template: .ci/publish-osx.yml
-        - template: .ci/publish-build-cache.yml
-
-        - job: ValidateMacOSRelease14
-      displayName: "MacOS: Validate Release (10.14)"
-      dependsOn: 
-      - Kickoff
-      - MacOS
-      pool:
-        vmImage: 'macOS-10.14'
-      variables:
-        ONI2_SHORT_COMMIT_ID: $[dependencies.Kickoff.outputs['shortCommitVariableStep.ONI2_SHORT_COMMIT_ID'] ]
-
-        steps:
-        - script: echo $(ONI2_SHORT_COMMIT_ID)
-        - script: 'echo ArtifactDir: $(System.ArtifactsDirectory)'
-          displayName: 'Echo artifact dir'
-        - task: DownloadBuildArtifacts@0
-          inputs: 
-            buildType: 'current'
-            downloadType: 'single'
-            artifactName: 'Release_Darwin'
-            downloadPath: '$(System.ArtifactsDirectory)'
-        - script: ./scripts/osx/validate-release.sh
-          env:
-            SYSTEM_ARTIFACTSDIRECTORY: $(System.ArtifactsDirectory)
-
-        - job: ValidateMacOSRelease15
-        displayName: "MacOS: Validate Release (10.15)"
-        dependsOn: 
-        - Kickoff
-        - MacOS
-        pool:
-          vmImage: 'macOS-10.15'
-        variables:
-          ONI2_SHORT_COMMIT_ID: $[dependencies.Kickoff.outputs['shortCommitVariableStep.ONI2_SHORT_COMMIT_ID'] ]
-
-          steps:
-          - script: echo $(ONI2_SHORT_COMMIT_ID)
-          - script: 'echo ArtifactDir: $(System.ArtifactsDirectory)'
-            displayName: 'Echo artifact dir'
-          - task: DownloadBuildArtifacts@0
-            inputs: 
-              buildType: 'current'
-              downloadType: 'single'
-              artifactName: 'Release_Darwin'
-              downloadPath: '$(System.ArtifactsDirectory)'
-          - script: ./scripts/osx/validate-release.sh
-            env:
-              SYSTEM_ARTIFACTSDIRECTORY: $(System.ArtifactsDirectory)
+    steps:
+       run: |
+          npm install -g rimraf
+          brew cleanup
+          brew update-reset
+          brew install ragel
+          ls /Applications/Xcode*
+          xcodebuild -version
+          npm install -g node-gyp
+          node-gyp list
+          node-gyp install 14.15.4
+          node-gyp list
+          node install-node-deps.js --prod	
+          npm install -g esy@0.6.7
+          npm install -g yarn
+          npm install -g prettier
+          prettier --check **/*.js
+          git diff --exit-code
+          esy install
+          esy clean-extensions
+          git diff --exit-code
+          esy @bench install
+          git diff --exit-code
+          esy @test install
+          git diff --exit-code
+          esy @integrationtest install
+          git diff --exit-code
+          esy bootstrap
+          esy build
+          esy format
+          git diff --exit-code
+          esy lint
+          yarn audit
+          npm install
+          npm run build
+          esy @release install
+          esy @release build
