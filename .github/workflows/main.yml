@@ -17,7 +17,7 @@ jobs:
     # ESY__NPM_ROOT: /usr/local/lib/node_modules/esy
 
     steps:
-       run: |
+       - run: |
           npm install -g rimraf
           brew cleanup
           brew update-reset
