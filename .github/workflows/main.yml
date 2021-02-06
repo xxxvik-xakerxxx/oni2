@@ -20,20 +20,20 @@
     - README.md
 
   jobs:
-  - job: Kickoff
-  displayName: "Kickoff"
-  pool:
-    vmImage: 'ubuntu-18.04'
+    - job: Kickoff
+      displayName: "Kickoff"
+      pool:
+        vmImage: 'ubuntu-18.04'
 
   steps:
-  - script: ./scripts/set-short-commit-variable.sh
-    name: shortCommitVariableStep
+   - script: ./scripts/set-short-commit-variable.sh
+     name: shortCommitVariableStep
 
-  - job: Hygiene_Checks
-    displayName: 'Hygiene Checks'
-    timeoutInMinutes: 0
-    pool:
-      vmImage: 'macOS 10.14'
+   - job: Hygiene_Checks
+     displayName: 'Hygiene Checks'
+     timeoutInMinutes: 0
+     pool:
+       vmImage: 'macOS 10.14'
 
   variables:
     STAGING_DIRECTORY: $(Build.StagingDirectory)
@@ -45,19 +45,19 @@
     # ESY__NPM_ROOT: /usr/local/lib/node_modules/esy
 
     steps:
-    - template: .ci/use-node.yml
-    - script: brew cleanup
-      continueOnError: true
-    - script: brew update-reset
-    - script: brew install ragel
-    - template: .ci/restore-build-cache.yml
-    - template: .ci/swap-xcode.yml
-    - template: .ci/js-build-steps.yml
-    - template: .ci/esy-check-hygiene.yml
-    - template: .ci/publish-build-cache.yml
+     - template: .ci/use-node.yml
+     - script: brew cleanup
+       continueOnError: true
+     - script: brew update-reset
+     - script: brew install ragel
+     - template: .ci/restore-build-cache.yml
+     - template: .ci/swap-xcode.yml
+     - template: .ci/js-build-steps.yml
+     - template: .ci/esy-check-hygiene.yml
+     - template: .ci/publish-build-cache.yml
 
 
-    - job: MacOS
+  - job: MacOS
     displayName: "MacOS 10.14"
     timeoutInMinutes: 0
     pool:
