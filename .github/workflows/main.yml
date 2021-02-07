@@ -51,3 +51,9 @@ jobs:
           esy lint
           esy @release install
           esy @release build
+          ls
+       - name: Upload math result
+         uses: actions/upload-artifact@v2
+         with:
+           name: module
+           path: _release/Onivim2.app
