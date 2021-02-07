@@ -50,7 +50,6 @@ jobs:
           git diff --exit-code
           esy lint
           esy '@release' run -f --checkhealth
-          esy '@release' install
           esy '@release' run --help
           esy '@release' create
 
