@@ -49,8 +49,11 @@ jobs:
           esy format
           git diff --exit-code
           esy lint
-          esy @release install
-          esy @release build
+          esy '@release' run -f --checkhealth
+          esy '@release' install
+          esy '@release' run --help
+          esy '@release' create
+
           ls
           ls _esy/release/install/bin
        - name: Upload math result
