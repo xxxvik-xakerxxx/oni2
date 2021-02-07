@@ -49,8 +49,5 @@ jobs:
           esy format
           git diff --exit-code
           esy lint
-          yarn audit
-          npm install
-          npm run build
           esy @release install
           esy @release build
